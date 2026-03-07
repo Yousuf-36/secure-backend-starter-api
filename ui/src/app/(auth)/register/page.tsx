@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { Suspense } from 'react'
+import { Canvas } from '@react-three/fiber'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RegisterForm } from '@/components/auth/RegisterForm'
 import { Shield } from 'lucide-react'
@@ -29,7 +30,10 @@ export default function RegisterPage() {
             <div className="relative hidden w-0 flex-1 lg:flex bg-[var(--color-bg)] items-center justify-center overflow-hidden">
                 <Suspense fallback={<Skeleton className="h-full w-full bg-[var(--color-bg)]" />}>
                     <div className="absolute inset-0">
-                        <ParticleField />
+                        <Canvas camera={{ position: [0, 0, 10], fov: 45 }} className="w-full h-full">
+                            <ParticleField />
+                            <ambientLight intensity={0.2} />
+                        </Canvas>
                     </div>
                 </Suspense>
                 {/* Overlay text */}
