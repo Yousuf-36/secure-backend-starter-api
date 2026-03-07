@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models import User
+from app.models import User, Role
 from app.schemas.auth import LoginRequest, RegisterRequest
 from app.auth.security import get_password_hash, verify_password
 from app.core.exceptions import api_error
@@ -32,6 +32,12 @@ async def register_user(db: AsyncSession, data: RegisterRequest) -> User:
         
     hashed_password = get_password_hash(data.password)
     new_user = User(email=data.email, hashed_password=hashed_password)
+    
+    # Assign default roles to new users
+    roles_result = await db.execute(select(Role).filter(Role.name.in_(["user", "ai_user"])))
+    default_roles = roles_result.scalars().all()
+    for role in default_roles:
+        new_user.roles.append(role)
     
     db.add(new_user)
     # Important: Autocommit is False, we mandate explicit commit handling in services layer.

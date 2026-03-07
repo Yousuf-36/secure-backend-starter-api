@@ -56,13 +56,26 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     else:
         msg = "Request validation failed"
 
+    # Safely serialize detail to avoid 'bytes is not JSON serializable'
+    safe_errors = []
+    for err in errors:
+        safe_dict = {}
+        for k, v in err.items():
+            if isinstance(v, bytes):
+                safe_dict[k] = v.decode("utf-8", errors="replace")
+            elif not isinstance(v, (str, int, float, bool, dict, list, type(None))):
+                safe_dict[k] = str(v)
+            else:
+                safe_dict[k] = v
+        safe_errors.append(safe_dict)
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": msg,
-                "detail": errors
+                "detail": safe_errors
             }
         },
         headers=_CORS_HEADERS,

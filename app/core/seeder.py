@@ -35,6 +35,15 @@ async def seed_admin():
                 session.add(user_role)
                 await session.flush()
 
+            # Check if ai_user role exists
+            result = await session.execute(select(Role).filter(Role.name == "ai_user"))
+            ai_user_role = result.scalars().first()
+            if not ai_user_role:
+                logger.info("Creating 'ai_user' role...")
+                ai_user_role = Role(name="ai_user")
+                session.add(ai_user_role)
+                await session.flush()
+
             # Create default admin user
             admin_email = "admin@example.com"
             admin_password = "SecurePassword123!"
@@ -56,6 +65,8 @@ async def seed_admin():
                 logger.info("Admin user created successfully.")
             else:
                 logger.info("Admin user already exists.")
+
+            await session.commit()
 
         except Exception as e:
             logger.error(f"Error seeding database: {e}")
