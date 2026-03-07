@@ -6,7 +6,9 @@ from app.schemas.auth import LoginRequest, RegisterRequest, Token
 from app.schemas.user import UserResponse
 from app.auth.service import authenticate_user, register_user
 from app.auth.security import create_access_token, create_refresh_token, decode_token
+from app.auth.dependencies import get_current_user
 from app.core.exceptions import api_error
+from app.models import User
 
 router = APIRouter()
 
@@ -72,3 +74,18 @@ async def logout(response: Response):
     """Effectively drops the attached refresh token locally mapping back to an empty header."""
     response.delete_cookie("refresh_token")
     return {"message": "You have been logged out completely."}
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Get current authenticated user",
+)
+async def get_me(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Returns the full profile of the authenticated user including their assigned roles.
+    
+    Security:
+    - Protected by Bearer JWT access token via get_current_user dependency.
+    - Roles are eager-loaded (selectin) on the User model — no additional DB query needed.
+    """
+    return current_user

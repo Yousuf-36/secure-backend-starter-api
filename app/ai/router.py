@@ -3,7 +3,7 @@ from app.ai.schemas import CompletionRequest, CompletionResponse
 from app.ai.service import generate_completion
 from app.auth.dependencies import get_current_user
 from app.roles.dependencies import require_role
-from app.models.user import User
+from app.models import User
 
 router = APIRouter()
 

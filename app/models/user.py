@@ -17,4 +17,6 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
 
+    # Use lazy="selectin" so roles are ALWAYS eagerly loaded in async context —
+    # prevents MissingGreenlet errors when accessing user.roles after session closes.
     roles = relationship("Role", secondary=user_roles, lazy="selectin")

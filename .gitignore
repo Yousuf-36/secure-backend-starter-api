@@ -50,3 +50,11 @@ api_keys.txt
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Database and Testing
+*.db
+*.sqlite
+*_out.txt
+*_results.txt
+debug_*.py
+check_db.py

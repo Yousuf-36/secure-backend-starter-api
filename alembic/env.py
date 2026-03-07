@@ -8,9 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from app.core.config import config as app_config
-from app.models.base import Base
-from app.models.role import Role
-from app.models.user import User
+from app.models import Base, Role, User  # noqa: F401 — ensures mapper registry is complete
 
 # this is the Alembic Config object
 config = context.config
@@ -35,7 +33,11 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        render_as_batch=True,  # Required for SQLite ALTER support
+    )
 
     with context.begin_transaction():
         context.run_migrations()

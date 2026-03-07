@@ -1,6 +1,6 @@
 from typing import List, Callable
 from fastapi import Depends
-from app.models.user import User
+from app.models import User
 from app.auth.dependencies import get_current_user
 from app.core.exceptions import api_error
 

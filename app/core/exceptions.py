@@ -7,6 +7,15 @@ import logging
 
 logger = logging.getLogger("app.core.exceptions")
 
+# CORS origins that get injected into error responses so the browser
+# never sees a CORS block masking the real error code.
+_CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods": "*",
+    "Access-Control-Allow-Headers": "*",
+}
+
 def api_error(code: str, message: str, status_code: int, detail: Optional[Any] = None) -> HTTPException:
     """Helper macro to raise standardized API HTTP exceptions."""
     return HTTPException(
@@ -19,10 +28,13 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     exc_detail = getattr(exc, "detail", "Unknown Error")
     if isinstance(exc_detail, dict) and "code" in exc_detail and "message" in exc_detail:
         # Already formatted with api_error
-        return JSONResponse(status_code=exc.status_code, content={"error": exc_detail})
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": exc_detail},
+            headers=_CORS_HEADERS,
+        )
     
     # Legacy handling / third-party HTTP exceptions
-    # Map common starlette handlers to the api_error code structure
     if exc.status_code == status.HTTP_404_NOT_FOUND:
         code = "NOT_FOUND"
     elif exc.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
@@ -33,13 +45,12 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": {"code": code, "message": str(exc_detail), "detail": None}},
+        headers=_CORS_HEADERS,
     )
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """Transforms raw Pydantic validation errors into the standardized error contract."""
-    # Build a simple error message based on the fields that failed
     errors = exc.errors()
-    # Format a human-readable message if possible, falling back to a default
     if errors:
         msg = f"Validation exception on {'.'.join([str(loc) for loc in errors[0]['loc']])}: {errors[0]['msg']}"
     else:
@@ -54,6 +65,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
                 "detail": errors
             }
         },
+        headers=_CORS_HEADERS,
     )
 
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -68,4 +80,5 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
                 "detail": None
             }
         },
+        headers=_CORS_HEADERS,
     )
