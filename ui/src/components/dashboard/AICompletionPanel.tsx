@@ -1,10 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Sparkles, Clock, AlertCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Send, Copy, RotateCcw, Clock, MoreHorizontal, AlertCircle } from 'lucide-react'
 import { generateCompletion } from '@/lib/api/ai'
 import { resolveErrorMessage } from '@/types/api'
 import type { AxiosError } from 'axios'
@@ -14,6 +12,8 @@ interface CompletionEntry {
     prompt: string
     response: string
     model: string
+    tokens: number
+    latency: string
     timestamp: Date
 }
 
@@ -26,24 +26,44 @@ export function AICompletionPanel() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [history, setHistory] = useState<CompletionEntry[]>([])
+    const [activeModel, setActiveModel] = useState('Groq')
+    const [temperature, setTemperature] = useState(0.7)
+    const [maxTokens, setMaxTokens] = useState(1024)
     const [activeEntry, setActiveEntry] = useState<CompletionEntry | null>(null)
 
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault()
-        if (!prompt.trim() || isLoading) return
+    const models = ['Groq', 'Gemini', 'Ollama']
+    const tokenOptions = [256, 512, 1024, 2048]
 
-        const currentPrompt = prompt.trim()
-        setPrompt('')
+    async function handleSubmit(e?: React.FormEvent, overridePrompt?: string) {
+        if (e) e.preventDefault()
+        const textToSubmit = overridePrompt || prompt.trim()
+        if (!textToSubmit || isLoading) return
+
+        if (!overridePrompt) {
+            setPrompt('')
+        }
         setIsLoading(true)
         setError(null)
+        setActiveEntry(null)
+
+        const startTime = Date.now()
 
         try {
-            const result = await generateCompletion({ prompt: currentPrompt, max_tokens: 1000 })
+            const result = await generateCompletion({ 
+                prompt: textToSubmit, 
+                max_tokens: maxTokens,
+                temperature: temperature
+            })
+            
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
+            
             const entry: CompletionEntry = {
                 id: crypto.randomUUID(),
-                prompt: currentPrompt,
+                prompt: textToSubmit,
                 response: result.response,
-                model: result.model_used,
+                model: result.model_used || activeModel,
+                tokens: maxTokens,
+                latency: `${elapsed}s`,
                 timestamp: new Date(),
             }
             setHistory((prev) => [entry, ...prev])
@@ -57,136 +77,277 @@ export function AICompletionPanel() {
         }
     }
 
+    const copyToClipboard = () => {
+        if (activeEntry?.response) {
+            navigator.clipboard.writeText(activeEntry.response)
+        }
+    }
+
     return (
-        <div className="flex h-full gap-6">
-            {/* Main area */}
-            <div className="flex flex-1 flex-col gap-4">
-                {/* Response area */}
-                <div className="flex-1 rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-sm min-h-[320px]">
-                    <AnimatePresence mode="wait">
-                        {isLoading ? (
-                            <motion.div
-                                key="loading"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="space-y-3"
-                            >
-                                <div className="flex items-center gap-2 text-sm text-[#6B7280] mb-4">
-                                    <Sparkles className="h-4 w-4 text-[#0066FF] animate-pulse" />
-                                    <span>Generating response…</span>
+        <div className="flex flex-col md:flex-row h-full w-full overflow-hidden bg-[var(--color-bg)]">
+            
+            {/* LEFT PANEL (65%) */}
+            <div className="flex flex-col w-full md:w-[65%] h-full bg-[var(--color-surface)] border-r border-[var(--color-border)]">
+                
+                {/* TOOLBAR */}
+                <div className="flex items-center justify-between h-12 px-6 border-b border-[var(--color-border)] flex-shrink-0">
+                    <h1 className="text-lg font-display font-bold text-[var(--color-primary)]">AI Studio</h1>
+                    
+                    <div className="flex items-center gap-6">
+                        {/* Models */}
+                        <div className="flex items-center gap-1.5 p-1 bg-[var(--color-bg)] rounded-lg border border-[var(--color-border)]">
+                            {models.map(m => (
+                                <button
+                                    key={m}
+                                    onClick={() => setActiveModel(m)}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${
+                                        activeModel === m 
+                                        ? 'bg-[var(--color-accent)] text-[var(--color-dark-text)]' 
+                                        : 'bg-[var(--color-surface)] text-[var(--color-secondary)] hover:text-[var(--color-primary)]'
+                                    }`}
+                                >
+                                    {m}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        {/* Temperature */}
+                        <div className="hidden lg:flex items-center gap-3 text-xs font-bold text-[var(--color-secondary)]">
+                            <span>Temp</span>
+                            <input 
+                                type="range" 
+                                min="0" max="2" 
+                                step="0.1" 
+                                value={temperature} 
+                                onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                                className="w-20 accent-[var(--color-accent)]" 
+                            />
+                            <span className="w-6">{temperature}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* SCROLLABLE INNER AREA */}
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 relative">
+                    
+                    {/* PROMPT SECTION */}
+                    <div className="flex flex-col flex-shrink-0">
+                        <label className="text-xs font-bold uppercase tracking-widest text-[var(--color-secondary)] mb-2">
+                            Prompt
+                        </label>
+                        <div className="relative">
+                            <textarea
+                                value={prompt}
+                                onChange={(e) => {
+                                    setPrompt(e.target.value)
+                                    e.target.style.height = 'auto'
+                                    e.target.style.height = `${Math.min(e.target.scrollHeight, 400)}px`
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                        e.preventDefault()
+                                        handleSubmit()
+                                    }
+                                }}
+                                placeholder="Enter your prompt... (⌘+Enter to send)"
+                                className="w-full min-h-[160px] max-h-[40vh] bg-[var(--color-bg)] border border-[var(--color-border)] rounded-lg p-4 pb-8 font-mono text-sm text-[var(--color-primary)] resize-none focus:outline-none focus:border-[var(--color-accent)] transition-colors placeholder:text-[var(--color-secondary)]/60"
+                            />
+                            <div className="absolute bottom-3 right-3 text-xs font-bold text-[var(--color-muted)]">
+                                {prompt.length}
+                            </div>
+                        </div>
+
+                        {/* Token Row */}
+                        <div className="flex flex-wrap items-center justify-between mt-4">
+                            <div className="flex items-center gap-3 mb-4 sm:mb-0">
+                                <span className="text-xs font-bold text-[var(--color-secondary)]">Max tokens:</span>
+                                <div className="flex items-center gap-2">
+                                    {tokenOptions.map(t => (
+                                        <button
+                                            key={t}
+                                            onClick={() => setMaxTokens(t)}
+                                            className={`px-3 py-1 text-xs font-bold rounded-full border border-[var(--color-border)] transition-colors ${
+                                                maxTokens === t
+                                                ? 'bg-[var(--color-accent)] text-[var(--color-dark-text)]'
+                                                : 'bg-[var(--color-bg)] text-[var(--color-secondary)] hover:bg-[var(--color-surface)]'
+                                            }`}
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
                                 </div>
-                                <Skeleton className="h-4 w-full" />
-                                <Skeleton className="h-4 w-5/6" />
-                                <Skeleton className="h-4 w-4/6" />
-                                <Skeleton className="h-4 w-full" />
-                                <Skeleton className="h-4 w-3/4" />
-                            </motion.div>
-                        ) : error ? (
+                            </div>
+                            
+                            <button
+                                onClick={(e) => handleSubmit(e)}
+                                disabled={!prompt.trim() || isLoading}
+                                className="w-full sm:w-auto flex-1 sm:flex-none h-12 flex items-center justify-center gap-2 px-8 bg-[var(--color-accent)] text-[var(--color-dark-text)] font-bold rounded-lg hover:opacity-90 disabled:opacity-50 transition-all border border-[var(--color-accent)] shrink-0 max-w-[200px]"
+                            >
+                                {isLoading ? (
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    </div>
+                                ) : (
+                                    <>
+                                        Generate <Send className="w-4 h-4 ml-1" />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ERROR STATE */}
+                    <AnimatePresence>
+                        {error && (
                             <motion.div
-                                key="error"
-                                initial={{ opacity: 0, y: 8 }}
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="rounded-lg border border-[var(--color-secondary)] bg-[#FEF2F2] p-4 text-[var(--color-primary)] overflow-hidden shrink-0"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="w-5 h-5 text-[var(--color-secondary)] flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <h3 className="text-sm font-bold">Generation Failed</h3>
+                                        <p className="text-sm mt-1 mb-3">{error}</p>
+                                        <button
+                                            onClick={() => handleSubmit(undefined, prompt)}
+                                            className="px-4 py-1.5 bg-[var(--color-secondary)] text-[var(--color-dark-text)] text-xs font-bold rounded-md"
+                                        >
+                                            Try Again
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* RESPONSE SECTION */}
+                    <AnimatePresence>
+                        {activeEntry && !error && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                className="flex items-start gap-3 text-[#EF4444]"
+                                className="flex flex-col rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] overflow-hidden shrink-0"
                             >
-                                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
-                                <div>
-                                    <p className="font-medium text-sm">Error</p>
-                                    <p className="text-sm text-[#9CA3AF]">{error}</p>
+                                {/* Header */}
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+                                    <h3 className="text-sm font-bold text-[var(--color-primary)]">Response</h3>
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            onClick={copyToClipboard}
+                                            className="p-1.5 rounded-md hover:bg-[var(--color-bg)] text-[var(--color-secondary)] transition-colors"
+                                            title="Copy to clipboard"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => handleSubmit(undefined, activeEntry.prompt)}
+                                            className="p-1.5 rounded-md hover:bg-[var(--color-bg)] text-[var(--color-secondary)] transition-colors"
+                                            title="Regenerate"
+                                        >
+                                            <RotateCcw className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
-                            </motion.div>
-                        ) : activeEntry ? (
-                            <motion.div
-                                key={activeEntry.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                            >
-                                <p className="mb-3 text-xs font-medium uppercase tracking-widest text-[#9CA3AF]">
-                                    {activeEntry.model}
-                                </p>
-                                <p className="whitespace-pre-wrap text-sm leading-7 text-[#0A0A0A]">
-                                    {activeEntry.response}
-                                </p>
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="empty"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="flex h-full flex-col items-center justify-center gap-3 text-center"
-                            >
-                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EEF4FF]">
-                                    <Sparkles className="h-6 w-6 text-[#0066FF]" />
+                                
+                                {/* Content */}
+                                <div className="p-5 text-sm font-medium text-[var(--color-primary)] leading-relaxed whitespace-pre-wrap">
+                                    <TypewriterText text={activeEntry.response} />
                                 </div>
-                                <p className="font-medium text-[#0A0A0A]">AI Studio</p>
-                                <p className="text-sm text-[#9CA3AF] max-w-xs">
-                                    Enter a prompt below to generate a completion using Groq&apos;s Llama 3 model.
-                                </p>
+                                
+                                {/* Footer */}
+                                <div className="flex items-center justify-between px-4 py-2 border-t border-[var(--color-border)] bg-[var(--color-surface)] text-[11px] font-bold text-[var(--color-muted)] uppercase tracking-wider">
+                                    <div className="flex gap-4">
+                                        <span>{activeEntry.model}</span>
+                                        <span className="hidden sm:inline">Tokens: {activeEntry.tokens} MAX</span>
+                                    </div>
+                                    <span>Latency: {activeEntry.latency}</span>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
-
-                {/* Prompt Input */}
-                <form onSubmit={handleSubmit} className="relative">
-                    <textarea
-                        value={prompt}
-                        onChange={(e) => {
-                            setPrompt(e.target.value)
-                            e.target.style.height = 'auto'
-                            e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit(e)
-                        }}
-                        placeholder="Enter your prompt… (Ctrl+Enter to submit)"
-                        rows={3}
-                        className="w-full resize-none rounded-xl border border-[#E5E7EB] bg-white px-4 py-3.5 pr-14 text-sm text-[#0A0A0A] placeholder-[#9CA3AF] shadow-sm outline-none ring-0 transition-all focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/20"
-                    />
-                    <Button
-                        type="submit"
-                        disabled={!prompt.trim() || isLoading}
-                        size="sm"
-                        className="absolute bottom-3 right-3 h-8 w-8 rounded-lg bg-[#0066FF] p-0 text-white hover:bg-[#0052CC] disabled:opacity-40"
-                    >
-                        <Send className="h-3.5 w-3.5" />
-                    </Button>
-                </form>
             </div>
 
-            {/* History sidebar */}
-            <div className="hidden w-64 flex-col gap-2 lg:flex">
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#9CA3AF] px-1">
-                    Recent
-                </p>
-                <div className="flex-1 space-y-2 overflow-y-auto">
+            {/* RIGHT PANEL (35%) */}
+            <div className="flex flex-col w-full md:w-[35%] h-[400px] md:h-full bg-[var(--color-bg)] p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-sm font-bold text-[var(--color-primary)] uppercase tracking-wider">History</h2>
+                    <button 
+                        onClick={() => setHistory([])}
+                        className="text-xs font-bold text-[var(--color-muted)] hover:text-[var(--color-secondary)] transition-colors px-2 py-1 rounded"
+                    >
+                        Clear
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                     {history.length === 0 ? (
-                        <p className="text-xs text-[#9CA3AF] px-1">No completions yet.</p>
+                        <div className="h-full flex flex-col items-center justify-center text-center opacity-70">
+                            <Clock className="w-8 h-8 text-[var(--color-border)] mb-3" />
+                            <p className="font-bold text-[var(--color-secondary)]">No completions yet</p>
+                            <p className="text-xs font-semibold text-[var(--color-muted)] mt-1">Your history appears here</p>
+                        </div>
                     ) : (
                         history.map((entry) => (
                             <motion.button
                                 key={entry.id}
-                                initial={{ opacity: 0, x: 8 }}
+                                onClick={() => {
+                                    setPrompt(entry.prompt)
+                                    setActiveEntry(entry)
+                                }}
+                                initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                onClick={() => setActiveEntry(entry)}
-                                className={`w-full rounded-lg border p-3 text-left text-xs transition-colors ${activeEntry?.id === entry.id
-                                        ? 'border-[#0066FF]/30 bg-[#EEF4FF]'
-                                        : 'border-[#E5E7EB] bg-white hover:border-[#0066FF]/20 hover:bg-[#F9FAFB]'
-                                    }`}
+                                className="w-full text-left bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 hover:border-l-[4px] hover:border-l-[var(--color-accent)] transition-all group"
                             >
-                                <p className="truncate font-medium text-[#0A0A0A]">{entry.prompt}</p>
-                                <div className="mt-1 flex items-center gap-1 text-[#9CA3AF]">
-                                    <Clock className="h-3 w-3" />
-                                    <span>{entry.timestamp.toLocaleTimeString()}</span>
+                                <p className="text-sm font-bold text-[var(--color-primary)] truncate mb-3">
+                                    {entry.prompt}
+                                </p>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-[var(--color-secondary)] flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                    <span className="text-[10px] uppercase font-bold text-[var(--color-dark-text)] bg-[var(--color-border)] px-1.5 py-0.5 rounded">
+                                        {entry.tokens} tok
+                                    </span>
                                 </div>
                             </motion.button>
                         ))
                     )}
                 </div>
             </div>
+            
         </div>
+    )
+}
+
+function TypewriterText({ text }: { text: string }) {
+    const [displayed, setDisplayed] = useState('')
+
+    useEffect(() => {
+        let i = 0
+        setDisplayed('')
+        const interval = setInterval(() => {
+            setDisplayed(text.slice(0, i))
+            i += 3
+            if (i > text.length + 3) clearInterval(interval)
+        }, 5)
+        return () => clearInterval(interval)
+    }, [text])
+
+    return (
+        <>
+            {displayed.split('`').map((part, i) => {
+                if (i % 2 !== 0) {
+                    return <code key={i} className="px-1.5 py-0.5 mx-0.5 rounded bg-[var(--color-dark-card)] text-[var(--color-dark-text)] font-mono text-xs whitespace-pre-wrap">{part}</code>
+                }
+                return <span key={i}>{part}</span>
+            })}
+            <span className="inline-block w-1.5 h-3 ml-1 bg-[var(--color-accent)] animate-pulse align-middle" />
+        </>
     )
 }
