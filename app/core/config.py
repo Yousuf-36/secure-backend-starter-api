@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     
     # AI Module (Groq Default)
     GROQ_API_KEY: Optional[str] = None
+    AI_PROVIDER: str = "groq"
     
     # Rate Limiting
     RATE_LIMIT_AUTH_REQUESTS: int = 10
