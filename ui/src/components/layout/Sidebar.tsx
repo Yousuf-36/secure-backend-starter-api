@@ -10,6 +10,9 @@ import {
     Settings,
     LogOut,
     ChevronRight,
+    Github,
+    Twitter,
+    Mail
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -39,15 +42,15 @@ export function Sidebar() {
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-            className="fixed left-0 top-0 bottom-0 z-40 flex w-64 flex-col border-r border-[#E5E7EB] bg-white"
+            className="fixed left-0 top-0 bottom-0 z-40 flex w-64 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]"
         >
             {/* Logo */}
-            <div className="flex h-16 items-center border-b border-[#E5E7EB] px-6">
+            <div className="flex h-16 items-center border-b border-[var(--color-border)] px-6">
                 <Link href="/" className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0066FF]">
-                        <span className="text-xs font-bold text-white">LS</span>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-accent)]">
+                        <span className="text-xs font-bold text-[var(--color-dark-text)]">LS</span>
                     </div>
-                    <span className="font-semibold text-[#0A0A0A] tracking-tight text-sm">Launchstack</span>
+                    <span className="font-semibold text-[var(--color-primary)] tracking-tight text-sm">Launchstack</span>
                 </Link>
             </div>
 
@@ -63,14 +66,14 @@ export function Sidebar() {
                                 className={cn(
                                     'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                                     isActive
-                                        ? 'bg-[#EEF4FF] text-[#0066FF]'
-                                        : 'text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#0A0A0A]'
+                                        ? 'bg-[var(--color-accent)] text-[var(--color-dark-text)]'
+                                        : 'text-[var(--color-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-primary)]'
                                 )}
                             >
                                 <Icon className="h-4 w-4 flex-shrink-0" />
                                 {item.label}
                                 {isActive && (
-                                    <ChevronRight className="ml-auto h-3.5 w-3.5 text-[#0066FF]" />
+                                    <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-70" />
                                 )}
                             </motion.div>
                         </Link>
@@ -78,25 +81,36 @@ export function Sidebar() {
                 })}
             </nav>
 
-            {/* User footer */}
-            <div className="border-t border-[#E5E7EB] p-4">
-                <div className="mb-3 flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF4FF] text-xs font-semibold text-[#0066FF]">
-                        {user?.email?.[0]?.toUpperCase() ?? 'U'}
+            {/* Bottom Section */}
+            <div className="border-t border-[var(--color-border)]">
+                {/* User Info */}
+                <div className="p-4 border-b border-[var(--color-border)]">
+                    <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-bg)] text-xs font-semibold text-[var(--color-primary)]">
+                            {user?.email?.[0]?.toUpperCase() ?? 'U'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-medium text-[var(--color-primary)]">{user?.email ?? '—'}</p>
+                            <RoleBadge role={primaryRole} size="sm" />
+                        </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-medium text-[#0A0A0A]">{user?.email ?? '—'}</p>
-                        <RoleBadge role={primaryRole} size="sm" />
-                    </div>
+                    <button
+                        onClick={() => logout()}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--color-secondary)] transition-colors hover:bg-[var(--color-bg)] hover:text-[var(--color-primary)]"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Sign out
+                    </button>
                 </div>
-                <button
-                    onClick={() => logout()}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#6B7280] transition-colors hover:bg-[#FEF2F2] hover:text-[#EF4444]"
-                >
-                    <LogOut className="h-4 w-4" />
-                    Sign out
-                </button>
+
+                {/* Social Icons */}
+                <div className="flex items-center justify-around p-4 text-[var(--color-secondary)]">
+                    <a href="#" className="hover:text-[var(--color-primary)] transition-colors"><Github className="w-4 h-4" /></a>
+                    <a href="#" className="hover:text-[var(--color-primary)] transition-colors"><Twitter className="w-4 h-4" /></a>
+                    <a href="#" className="hover:text-[var(--color-primary)] transition-colors"><Mail className="w-4 h-4" /></a>
+                </div>
             </div>
         </motion.aside>
     )
 }
+

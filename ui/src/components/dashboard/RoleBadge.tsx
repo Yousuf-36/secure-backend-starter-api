@@ -6,13 +6,13 @@ interface RoleBadgeProps {
 }
 
 const roleConfig: Record<string, { label: string; classes: string }> = {
-    admin: { label: 'Admin', classes: 'bg-[#EEF4FF] text-[#0066FF]' },
-    ai_user: { label: 'AI User', classes: 'bg-purple-50 text-purple-600' },
-    user: { label: 'User', classes: 'bg-[#F0FDF4] text-[#10B981]' },
+    admin: { label: 'Admin', classes: 'bg-[var(--color-accent)] text-[var(--color-white)]' },
+    ai_user: { label: 'AI User', classes: 'bg-[var(--color-bg)] text-[var(--color-primary)] border border-[var(--color-border)]' },
+    user: { label: 'User', classes: 'bg-[var(--color-surface)] text-[var(--color-secondary)] border border-[var(--color-border)]' },
 }
 
 export function RoleBadge({ role, size = 'md' }: RoleBadgeProps) {
-    const config = roleConfig[role] ?? { label: role, classes: 'bg-[#F9FAFB] text-[#6B7280]' }
+    const config = roleConfig[role] ?? { label: role, classes: 'bg-[var(--color-surface)] text-[var(--color-secondary)] border border-[var(--color-border)]' }
 
     return (
         <span
@@ -26,3 +26,4 @@ export function RoleBadge({ role, size = 'md' }: RoleBadgeProps) {
         </span>
     )
 }
+
