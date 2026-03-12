@@ -7,6 +7,7 @@ from app.schemas.user import UserResponse
 from app.auth.service import authenticate_user, register_user
 from app.auth.security import create_access_token, create_refresh_token, decode_token
 from app.auth.dependencies import get_current_user
+from app.core.config import config
 from app.core.exceptions import api_error
 from app.models import User
 
@@ -34,8 +35,8 @@ async def login(response: Response, data: LoginRequest, db: AsyncSession = Depen
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True, 
-        samesite="lax",
+        secure=config.APP_ENV == "production", 
+        samesite="none" if config.APP_ENV == "production" else "lax",
     )
     
     return Token(access_token=access_token, expires_in=expires_in)
@@ -63,8 +64,8 @@ async def refresh(request: Request, response: Response):
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        secure=True, 
-        samesite="lax",
+        secure=config.APP_ENV == "production", 
+        samesite="none" if config.APP_ENV == "production" else "lax",
     )
     
     return Token(access_token=access_token, expires_in=expires_in)
