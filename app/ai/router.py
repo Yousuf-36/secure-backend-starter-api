@@ -34,5 +34,5 @@ async def completion_endpoint(
     
     return CompletionResponse(
         response=result,
-        model_used="groq/llama3-8b-8192"
+        model_used="groq/llama-3.1-8b-instant"
     )
