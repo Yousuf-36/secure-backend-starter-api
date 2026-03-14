@@ -37,6 +37,7 @@ venv.bak/
 .env
 .env.local
 .env.*
+!.env.example
 
 # Application specific
 api_keys.txt
@@ -54,9 +55,12 @@ Thumbs.db
 # Database and Testing
 *.db
 *.sqlite
+debug_*.py
+debug_*.txt
+check_db.py
+.pytest_cache/
+
+# Pytest output artifacts
 *_out.txt
 *_results.txt
-debug_*.py
-check_db.py
-.env
-.env.local
+pytest_output.txt
