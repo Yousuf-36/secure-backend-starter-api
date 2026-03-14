@@ -11,7 +11,6 @@ from app.core.database import AsyncSessionLocal
 from app.models import User, Role
 from app.auth.security import get_password_hash
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("seeder")
 
 async def seed_admin():
@@ -73,6 +72,7 @@ async def seed_admin():
             await session.rollback()
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     logger.info("Starting database seeder...")
     asyncio.run(seed_admin())
     logger.info("Seeding complete.")

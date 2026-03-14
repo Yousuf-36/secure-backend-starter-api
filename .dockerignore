@@ -1,0 +1,39 @@
+# Git metadata
+.git
+.gitignore
+
+# Secrets — never bake into image
+.env
+.env.*
+!.env.example
+api_keys.txt
+
+# Virtual environment — use pip install -r requirements.txt inside the image
+venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Databases — use PostgreSQL in production (docker-compose)
+*.db
+*.sqlite
+
+# Test infrastructure
+.pytest_cache/
+tests/
+pytest.ini
+
+# Documentation (not needed at runtime)
+*.md
+README*
+LICENSE
+CONTRIBUTING*
+
+# Debug / dev artifacts
+debug_*.py
+debug_*.txt
+*_out.txt
+*_results.txt

@@ -19,7 +19,7 @@ async def generate_completion(prompt: str, max_tokens: int = 1000, temperature: 
         "Content-Type": "application/json"
     }
     payload = {
-        # Defaults to Groq's fast Llama 3.1 8b serving
+        # Canonical Groq model identifier — matches GROQ_MODEL in ai/router.py
         "model": "llama-3.1-8b-instant",
         "messages": [
             {"role": "user", "content": prompt}

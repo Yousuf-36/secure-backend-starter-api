@@ -1,11 +1,13 @@
-fastapi[all]==0.111.0 # Includes pydantic, starlette, uvicorn
-uvicorn==0.30.1
-sqlalchemy==2.0.30
+fastapi[all]==0.135.1
+uvicorn==0.34.2
+sqlalchemy==2.0.48
 asyncpg==0.30.0
-alembic==1.13.1
-pydantic-settings==2.2.1
+aiosqlite==0.22.1
+alembic==1.18.4
+pydantic-settings==2.8.1
 bcrypt==4.1.3
 pyjwt==2.8.0
 httpx==0.27.0
-pytest>=8.2.2
-pytest-asyncio>=0.23.7
+slowapi==0.1.9
+pytest==8.2.2
+pytest-asyncio==0.23.7
