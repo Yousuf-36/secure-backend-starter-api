@@ -1,4 +1,3 @@
----
 # Launchstack — Full Stack Prototype
 
 > ⚠️ This is an archived prototype branch.
@@ -19,4 +18,3 @@ and a fully integrated FastAPI backend.
 ## Status
 Prototype — not maintained. 
 See main branch for the production API boilerplate.
----
